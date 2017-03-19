@@ -1,0 +1,8 @@
+<div class="field">
+  <%= df.label :detail %><br>
+  <%= df.text_field :detail %>
+  <%= df.hidden_field :id %>
+  <%= df.fields_for :topics do |tf| %>
+    <%= render partial: "topic_form", locals: {tf: tf } %>
+  <% end %>
+</div>

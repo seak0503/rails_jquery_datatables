@@ -14,6 +14,10 @@
   <div class="field">
     <%= f.label :name %><br>
     <%= f.text_field :name %>
+    <%= f.hidden_field :id %>
+    <%= f.fields_for :event_details do |df| %>
+      <%= render partial: "event_detail_form", locals: {df: df } %>
+    <% end %>
   </div>
   <div class="actions">
     <%= f.submit %>
