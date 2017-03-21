@@ -397,21 +397,23 @@ class EventsDatatable
 end
 ```
 
-## coffeescript
+## jquery
 
 下記を追加。
 
 ```
-# app/assets/javascripts/events.js.coffee
-jQuery ->
-  $('#events').dataTable
-    "processing": true, # 処理中の表示
-    "serverSide": true, # サーバサイドへ Ajax するか
-    "ajax": "list", # Ajax の通信先
-    "columns": [ # 扱うカラムの指定
+# app/assets/javascripts/events.js
+$(function () {
+  $('#events').DataTable({
+    "processing": true, // 処理中の表示
+    "serverSide": true, // サーバサイドへ Ajax するか
+    "ajax": "list", // Ajax の通信先
+    "columns": [ //# 扱うカラムの指定
       { "data": "id" },
       { "data": "name" },
     ]
+  });
+});
 ```
 
 ## オートロード追加
@@ -430,7 +432,91 @@ jQuery ->
 
 以上で完了
 
-## まとめ
+# カラム単位での検索機能実装
+
+Excelライクな検索ができるよう、カラム単位で検索できる仕様に変更する
+
+## ビュー編集
+
+`tfoot`を追加する。この部分がjqueryで検索フォームに書きかわる
+
+```
+# app/views/events/list.html.erb を編集
+<table id="events" class='table table-striped table-bordered'>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+    </tr>
+  </thead>
+  <tfoot>
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+    </tr>
+  </tfoot>
+  <tbody>
+  </tbody>
+</table>
+```
+
+## jqeury編集
+
+```
+# app/assets/javascripts/events.js を編集
+$(function () {
+  $('#events tfoot th').each(function () {
+    $(this).html( '<p>検索: <input type="text" /></p>' );
+  });
+  var table = $('#events').DataTable({
+    "processing": true, // 処理中の表示
+    "serverSide": true, // サーバサイドへ Ajax するか
+    "ajax": "list", // Ajax の通信先
+    "columns": [ //# 扱うカラムの指定
+      { "data": "id" },
+      { "data": "name" },
+    ]
+  });
+  table.columns().every(function () {
+    var that = this;
+    $('input', this.footer()).on('keyup change', function () {
+      if (that.search() !== this.value) {
+        that.search(this.value).draw();
+      }
+    });
+  });
+});
+```
+
+## パラメータを解釈して、データを取得するクラスの編集
+
+`search_sql`メソッドを編集して、各カラムの検索ができるようにする
+
+```
+# app/datatables/events_datatable.rb 編集
+
+def search_sql
+  query = ""
+  params["columns"].each do |key, value|
+    search_column = columns[key.to_i]
+    search_value = value["search"]["value"]
+    if key.to_i == 0
+      query += "#{search_column} like '%#{search_value}%'" if search_value.present?
+    elsif (key.to_i >= 1) && (query.blank?)
+      query += "#{search_column} like '%#{search_value}%'" if search_value.present?
+    else
+      query += " and #{search_column} like '%#{search_value}%'" if search_value.present?
+    end
+  end
+  return query
+end
+```
+
+## 実装完了
+
+以上で完了
+
+# まとめ
 
 jQuery DataTables プラグインを使うことで検索・ソート・ページ送りなどの機能をビュー側で実装する必要がなくなるので、手っ取り早く一覧画面を作りたいときにおすすめ。
 
