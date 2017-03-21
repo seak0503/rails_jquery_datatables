@@ -32,11 +32,19 @@ class EventsDatatable
 
   # 検索ワードが指定されたとき
   def search_sql
-    return "" if params["search"]["value"].blank?
-    search = params["search"]["value"]
-    # name カラム固定の検索にしている
-    # "name like '%hoge%'"のようにSQLの一部を作る
-    "id like'%#{search}%' or name like '%#{search}%'"
+    query = ""
+    params["columns"].each do |key, value|
+      search_column = columns[key.to_i]
+      search_value = value["search"]["value"]
+      if key.to_i == 0
+        query += "#{search_column} like '%#{search_value}%'" if search_value.present?
+      elsif (key.to_i >= 1) && (query.blank?)
+        query += "#{search_column} like '%#{search_value}%'" if search_value.present?
+      else
+        query += " and #{search_column} like '%#{search_value}%'" if search_value.present?
+      end
+    end
+    return query
   end
 
   # ソート順
