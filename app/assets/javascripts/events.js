@@ -1,8 +1,6 @@
 $(function () {
   $('#events tfoot th').each(function () {
-    var $this = $(this),
-      title = $this.text();
-    $this.html( '<input type="text" placeholder="Search '+title+'" />' );
+    $(this).html( '<p>検索: <input type="text" /></p>' );
   });
   var table = $('#events').DataTable({
     "processing": true, // 処理中の表示
