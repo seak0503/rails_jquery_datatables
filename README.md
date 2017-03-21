@@ -512,6 +512,19 @@ def search_sql
 end
 ```
 
+## CSS変更
+
+このままだと検索フォームがテーブルの一番下に来てしまい、Excelの検索に慣れている人には違和感がある。
+
+そのため検索フォームを上に持ってくるため、CSSの編集を行う
+
+```
+# app/assets/stylesheets/events.css を編集
+tfoot {
+  display: table-header-group;
+}
+```
+
 ## 実装完了
 
 以上で完了
