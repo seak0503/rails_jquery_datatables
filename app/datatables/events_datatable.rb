@@ -36,7 +36,7 @@ class EventsDatatable
     search = params["search"]["value"]
     # name カラム固定の検索にしている
     # "name like '%hoge%'"のようにSQLの一部を作る
-    "name like '%#{search}%'"
+    "id like'%#{search}%' or name like '%#{search}%'"
   end
 
   # ソート順
