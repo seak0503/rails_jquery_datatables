@@ -1,7 +1,66 @@
 # rails jquery datatables
 
+[ネタ元](http://jetglass.hatenablog.jp/entry/2015/05/27/172831)
+
 # 準備
 
+## Gemfile
+
+```
+gem 'kaminari'
+gem 'jquery-datatables-rails', '~> 3.4.0'
+```
+
+## インストール
+
+```
+bin/bundle install
+```
+
+## generator からのインストール
+
+```
+$ rails generate jquery:datatables:install
+  insert  app/assets/javascripts/application.js
+  insert  app/assets/stylesheets/application.css
+```
+
+下記ファイルに下記内容が追加されていることを確認する。
+
+```
+$ less app/assets/javascripts/application.js
+//= require dataTables/jquery.dataTables
+
+$ less app/assets/stylesheets/application.css
+*= require dataTables/jquery.dataTables
+```
+
+bootstrap 3 をインストール。
+
+```
+bundle exec rails generate jquery:datatables:install bootstrap3
+      insert  app/assets/javascripts/application.js
+      insert  app/assets/stylesheets/application.css
+```
+
+下記ファイルに下記内容が追加されていることを確認する。
+
+```
+$ less app/assets/javascripts/application.js
+//= require dataTables/jquery.dataTables
+//= require dataTables/bootstrap/3/jquery.dataTables.bootstrap
+
+$ less app/assets/stylesheets/application.css
+*= require dataTables/bootstrap/3/jquery.dataTables.bootstrap
+```
+
+本家の bootstrap 3 を配置する。
+
+```
+# 下記のようにファイルを配置する
+app/assets/javascripts/bootstrap.min.js
+app/assets/stylesheets/bootstrap.min.css
+```
 
 # テスト用アプリ作成
 
@@ -195,6 +254,195 @@ update メソッドの引数として event_params(hoge_attributes を含む)を
 }
 ```
 
+# jQeury DataTablesとの連動(Ajax)
+
+## ルーティング
+
+```
+# config/routes.rb 一部抜粋
+  resources :events do
+    collection do #追加
+      get :list #追加
+    end #追加
+  end
+```
+
+## コントローラ
+
+list メソッドを実装。
+
+`EventsDatatable`はパラメーターを受け取って、それに従った SQL を実行し、JSON 形式に変換するクラス。
+
+```
+# app/controllers/events_controller.rb 一部抜粋
+  def list
+    respond_to do |format|
+      format.html
+      format.json {render json: EventsDatatable.new(params) }
+    end
+  end
+```
+
+## ビュー
+
+必要最低限の項目を作成。
+あとは jQuery DataTables プラグインが色々な機能を足してくれる。
+
+```
+# app/views/events/list.html.erb を追加
+<table id="events" class='table table-striped table-bordered'>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+    </tr>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
+```
+
+## JSON変換クラス
+
+一番大きい実装(モデルに実装できる内容だが、何も考えず切り分けた )。
+受け取ったパラメーターから条件に合うデータを取得、結果を JSON 形式にする。
+
+まずはAjax 通信で飛んでくるパラメーター。
+
+```
+{
+  "draw" => "1", 
+  # 今回の実装では columns 内 data  の項目しか使っていない
+  # 項目毎に検索対象やソート対象にするか、とかのオプション指定ができると思われる
+  "columns" => {
+    "0" => {"data"=>"id", "name"=>"", "searchable"=>"true",
+            "orderable"=>"true", "search"=>{"value"=>"", "regex"=>"false"}},
+    "1" => {"data"=>"name", "name"=>"", "searchable"=>"true",
+            "orderable"=>"true", "search"=>{"value"=>"", "regex"=>"false"}}
+  },
+  # どのカラムを昇順・降順にするか
+  "order"=>{"0"=>{"column"=>"0", "dir"=>"asc"}},
+  # ページ数と1ページに取得する件数
+  "start"=>"0", "length"=>"10", 
+  # 検索キーワード
+  "search"=>{"value"=>"hoge", "regex"=>"false"}, "_"=>"14328624114557"}
+```
+
+パラメータを解釈して、データを取得するクラス。
+
+```
+# app/datatables/events_datatable.rb 追加
+# -*- coding: utf-8 -*-
+#
+class EventsDatatable
+  attr_accessor :params
+
+  def initialize(params)
+    @params = params
+  end
+
+  # jQuery DataTables へ渡すためのハッシュを作る
+  # 補足：コントローラーの render json: で指定したオブジェクトに対して as_json が呼び出される
+  def as_json(options = {})
+    {
+      recordsTotal: Event.count, # 取得件数
+      recordsFiltered: events.total_count, # フィルター前の全件数
+      data: events.as_json, # 表データ
+    }
+  end
+
+  def events
+    @events ||= fetch_events
+  end
+
+  # 検索条件や件数を指定してデータを取得
+  def fetch_events
+    Event.where(search_sql).order(order_sql).page(page).per(per)
+  end
+
+  # カラム情報を配列にする
+  def columns
+    return [] if params["columns"].blank?
+    params["columns"].map{|_,v| v["data"]}
+  end
+
+  # 検索ワードが指定されたとき
+  def search_sql
+    return "" if params["search"]["value"].blank?
+    search = params["search"]["value"]
+    # name カラム固定の検索にしている
+    # "name like '%hoge%'"のようにSQLの一部を作る
+    "name like '%#{search}%'"
+  end
+
+  # ソート順
+  def order_sql
+    return "" if params["order"]["0"].blank?
+    order_data = params["order"]["0"]
+    order_column = columns[order_data["column"].to_i]
+    # "id desc" のようにSQLの一部を作る
+    "#{order_column} #{order_data["dir"]}"
+  end
+
+  # kaminari 向け、ページ数
+  def page
+    params["start"].to_i / per + 1
+  end
+
+  # kaminari 向け、1ページで取得する件数
+  def per
+    params["length"].to_i > 0 ? params["length"].to_i : 10
+  end
+
+end
+```
+
+## coffeescript
+
+下記を追加。
+
+```
+# app/assets/javascripts/events.js.coffee
+jQuery ->
+  $('#events').dataTable
+    "processing": true, # 処理中の表示
+    "serverSide": true, # サーバサイドへ Ajax するか
+    "ajax": "list", # Ajax の通信先
+    "columns": [ # 扱うカラムの指定
+      { "data": "id" },
+      { "data": "name" },
+    ]
+```
+
+## オートロード追加
+
+追加した JSON 変換クラスをオートロードさせる。
+
+```
+# app/config/application.rb
+...
+  class Application < Rails::Application
+    config.autoload_paths += %W(#{config.root}/app/datatables) # 追加
+...
+```
+
+## 実装完了
+
+以上で完了
+
+## まとめ
+
+jQuery DataTables プラグインを使うことで検索・ソート・ページ送りなどの機能をビュー側で実装する必要がなくなるので、手っ取り早く一覧画面を作りたいときにおすすめ。
+
+今回の実装はほぼ初期設定だが、それでも十分だと感じた。
+
+編集ボタンや削除ボタンの HTML を表データとして JSON にして返却すれば、 ボタンの設置も可能。
+
+jQuery DataTables プラグインは高機能だと思われるので、 必要に応じてリファレンス読み込んで機能追加するといい。
+Reference
+
+新規追加・編集・削除も Ajax で動的にできるようだ。
+https://editor.datatables.net/examples/simple/simple
 
 
 
