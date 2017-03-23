@@ -56,7 +56,7 @@ class EventsDatatable
       end
     end
 
-    # 全件検索
+    # 全文検索
     if all_cloumn_search_value.present?
       origin_val = all_cloumn_search_value
       normalize_str_val = normalize_as_string(all_cloumn_search_value)
