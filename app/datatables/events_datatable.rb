@@ -78,8 +78,8 @@ class EventsDatatable
       order_data = params["order"]["0"]
       order_column = columns[order_data["column"].to_i]
       @rel = @rel.order("events.id #{order_data["dir"]}") if order_column == "id"
-      @rel = @rel.order("events.name #{order_data["dir"]}") if order_column == "name"
-      @rel = @rel.order("event_details.detail #{order_data["dir"]}") if order_column == "event_details"
+      @rel = @rel.order("events.name_for_index #{order_data["dir"]}") if order_column == "name"
+      @rel = @rel.order("event_details.detail_for_index #{order_data["dir"]}") if order_column == "event_details"
     end
   end
 
