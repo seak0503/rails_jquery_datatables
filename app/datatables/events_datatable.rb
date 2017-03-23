@@ -38,14 +38,40 @@ class EventsDatatable
 
   # 検索ワードが指定されたとき
   def search_sql
+    all_cloumn_search_value = params["search"]["value"] if params["search"]["value"].present?
+    search_columns = { "events" => ["id", "name_for_index"], "event_details" => ["detail_for_index"]  }
+
+    # カラムごとの検索
     params["columns"].each do |key, value|
       search_column = columns[key.to_i]
       search_value = value["search"]["value"]
-      @rel = @rel.where("events.id LIKE ?", "%#{search_value}%") if (search_column == "id") && search_value.present?
-      @rel = @rel.where("events.name_for_index LIKE ?", "%#{normalize_as_string(search_value)}%") if (search_column == "name") && search_value.present?
+      if (search_column == "id") && search_value.present?
+        @rel = @rel.where("events.id LIKE ?", "%#{search_value}%")
+        #search_columns["events"].delete(":id")
+      end
+      if (search_column == "name") && search_value.present?
+        @rel = @rel.where("events.name_for_index LIKE ?", "%#{normalize_as_string(search_value)}%")
+        #search_columns["events"].delete("name_for_index")
+      end
       if (search_column == "event_details") && search_value.present?
         @rel = @rel.where("event_details.detail_for_index LIKE ?", "%#{normalize_as_string(search_value)}%")
+        #search_columns["event_details"].delete("detail_for_index")
       end
+    end
+
+    # 全件検索
+    if all_cloumn_search_value.present?
+      all_cloumn_search_queries = ""
+      search_columns.each do |table, columns|
+        columns.each do |column|
+          if all_cloumn_search_queries.blank?
+            all_cloumn_search_queries += "#{table}.#{column} LIKE :value"
+          else
+            all_cloumn_search_queries += " OR #{table}.#{column} LIKE :value"
+          end
+        end
+      end
+      @rel = @rel.where(all_cloumn_search_queries, value: "%#{normalize_as_string(all_cloumn_search_value)}%")
     end
   end
 
