@@ -1,4 +1,6 @@
 class EventsDatatable
+  require 'nkf'
+
   attr_accessor :params
 
   def initialize(params)
@@ -40,9 +42,9 @@ class EventsDatatable
       search_column = columns[key.to_i]
       search_value = value["search"]["value"]
       @rel = @rel.where("events.id LIKE ?", "%#{search_value}%") if (search_column == "id") && search_value.present?
-      @rel = @rel.where("events.name LIKE ?", "%#{search_value}%") if (search_column == "name") && search_value.present?
+      @rel = @rel.where("events.name_for_index LIKE ?", "%#{normalize_as_string(search_value)}%") if (search_column == "name") && search_value.present?
       if (search_column == "event_details") && search_value.present?
-        @rel = @rel.where("event_details.detail LIKE ?", "%#{search_value}%")
+        @rel = @rel.where("event_details.detail_for_index LIKE ?", "%#{normalize_as_string(search_value)}%")
       end
     end
   end
@@ -66,5 +68,11 @@ class EventsDatatable
   # kaminari 向け、1ページで取得する件数
   def per
     params["length"].to_i > 0 ? params["length"].to_i : 10
+  end
+
+  # 検索用文字列への変換
+  def normalize_as_string(text)
+    text = NKF.nkf('-W -w -Z1 --katakana', text).strip.gsub(" ", "")
+      .gsub(/[－―‐ー−]/, '-').downcase if text
   end
 end
