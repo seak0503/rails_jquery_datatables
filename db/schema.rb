@@ -22,16 +22,22 @@ ActiveRecord::Schema.define(version: 20170319142539) do
 
   create_table "event_details", force: true do |t|
     t.string   "detail"
+    t.string   "detail_for_index"
     t.integer  "event_id"
     t.datetime "created_at"
     t.datetime "updated_at"
   end
 
+  add_index "event_details", ["detail_for_index"], name: "index_event_details_on_detail_for_index", using: :btree
+
   create_table "events", force: true do |t|
     t.string   "name"
+    t.string   "name_for_index"
     t.datetime "created_at"
     t.datetime "updated_at"
   end
+
+  add_index "events", ["name_for_index"], name: "index_events_on_name_for_index", using: :btree
 
   create_table "topics", force: true do |t|
     t.string   "name"
