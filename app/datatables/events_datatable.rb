@@ -3,7 +3,7 @@ class EventsDatatable
 
   def initialize(params)
     @params = params
-    @rel = Event.joins(:event_details)
+    @rel = Event.joins(:event_details).distinct
   end
 
   # jQuery DataTables へ渡すためのハッシュを作る
