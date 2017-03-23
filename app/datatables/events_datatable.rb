@@ -58,17 +58,12 @@ class EventsDatatable
 
     # 全件検索
     if all_cloumn_search_value.present?
-      all_cloumn_search_queries = ""
-      search_columns.each do |table, columns|
-        columns.each do |column|
-          if all_cloumn_search_queries.blank?
-            all_cloumn_search_queries += "#{table}.#{column} LIKE :value"
-          else
-            all_cloumn_search_queries += " OR #{table}.#{column} LIKE :value"
-          end
-        end
-      end
-      @rel = @rel.where(all_cloumn_search_queries, value: "%#{normalize_as_string(all_cloumn_search_value)}%")
+      origin_val = all_cloumn_search_value
+      normalize_str_val = normalize_as_string(all_cloumn_search_value)
+      @rel = @rel.where(
+        "events.id LIKE :origin_val OR events.name_for_index LIKE :normalize_str_val OR event_details.detail_for_index LIKE :normalize_str_val",
+          origin_val: "%#{origin_val}%", normalize_str_val: "%#{normalize_str_val}%"
+        )
     end
   end
 
