@@ -85,7 +85,7 @@ class EventsDatatable
 
   # kaminari 向け、1ページで取得する件数
   def per
-    params["length"].to_i > 0 ? params["length"].to_i : 10
+    params["length"].to_i > 0 ? params["length"].to_i : Event.count
   end
 
   # 検索用文字列への変換
