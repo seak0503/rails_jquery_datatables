@@ -9,6 +9,7 @@ $(function () {
     "columns": [ //# 扱うカラムの指定
       { "data": "id" },
       { "data": "name" },
+      { "data": "event_details" },
     ]
   });
   table.columns().every(function () {
