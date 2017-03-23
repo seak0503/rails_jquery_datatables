@@ -47,15 +47,12 @@ class EventsDatatable
       search_value = value["search"]["value"]
       if (search_column == "id") && search_value.present?
         @rel = @rel.where("events.id LIKE ?", "%#{search_value}%")
-        #search_columns["events"].delete(":id")
       end
       if (search_column == "name") && search_value.present?
         @rel = @rel.where("events.name_for_index LIKE ?", "%#{normalize_as_string(search_value)}%")
-        #search_columns["events"].delete("name_for_index")
       end
       if (search_column == "event_details") && search_value.present?
         @rel = @rel.where("event_details.detail_for_index LIKE ?", "%#{normalize_as_string(search_value)}%")
-        #search_columns["event_details"].delete("detail_for_index")
       end
     end
 
