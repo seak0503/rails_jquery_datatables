@@ -11,6 +11,7 @@ gem 'turbolinks'
 gem 'jbuilder', '~> 2.0'
 gem 'kaminari'
 gem 'jquery-datatables-rails', '~> 3.4.0'
+gem 'faker'
 
 gem 'sdoc', '~> 0.4.0',          group: :doc
 
